@@ -1,0 +1,23 @@
+name: lint
+on: [push, pull_request]
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install shellcheck-py shfmt-py lupa
+      - run: bash tests/lint.sh
+
+  packages:
+    # Every manifest entry must exist in the current Arch repos / AUR.
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+      # Steam and lib32 packages live in [multilib], which is off in the container image.
+      - run: sed -i '/^#\[multilib\]/{s/^#//;n;s/^#//}' /etc/pacman.conf
+      - run: pacman -Syu --noconfirm --needed jq curl
+      - run: bash tests/check-packages.sh

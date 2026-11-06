@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# devy-doctor — quick health report. Exit code = number of failures.
+# Usage: devy-doctor [--perf]   (--perf adds boot time, idle RAM, shell startup)
+set -uo pipefail
+
+fails=0
+ok() { printf '  \e[32m✓\e[0m %s\n' "$*"; }
+warn() { printf '  \e[33m!\e[0m %s\n' "$*"; }
+fail() {
+  printf '  \e[31m✗\e[0m %s\n' "$*"
+  fails=$((fails + 1))
+}
+
+# version_ge A B : true if version A >= B
+version_ge() { [[ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -1)" == "$2" ]]; }
+
+echo "Versions"
+hv="$(hyprctl version -j 2>/dev/null | jq -r '.tag // .version // empty' | sed 's/^v//')"
+if [[ -n $hv ]]; then
+  if version_ge "${hv%%-*}" 0.57.0; then ok "Hyprland $hv"; else fail "Hyprland $hv < 0.57.0 (Devy config is Lua-only)"; fi
+else
+  warn "Hyprland not running (cannot read version)"
+fi
+wv="$(waybar --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)"
+if [[ -n $wv ]]; then
+  if version_ge "$wv" 0.16.0; then ok "Waybar $wv"; else fail "Waybar $wv < 0.16.0: workspace clicks break with Lua config"; fi
+fi
+ok "kernel $(uname -r)"
+
+echo "System"
+failed="$(systemctl --failed --no-legend --plain | awk '{print $1}')"
+if [[ -z $failed ]]; then ok "no failed system units"; else fail "failed system units: $(echo "$failed" | tr '\n' ' ')"; fi
+ufailed="$(systemctl --user --failed --no-legend --plain | awk '{print $1}')"
+if [[ -z $ufailed ]]; then ok "no failed user units"; else fail "failed user units: $(echo "$ufailed" | tr '\n' ' ')"; fi
+if swapon --show=NAME --noheadings | grep -q zram; then ok "zram swap active"; else fail "zram swap not active"; fi
+if [[ "$(cat /sys/module/zswap/parameters/enabled 2>/dev/null)" == N ]]; then ok "zswap off"; else warn "zswap is on (zram works poorly with it)"; fi
+if systemctl is-active --quiet systemd-oomd; then ok "systemd-oomd running"; else fail "systemd-oomd not running"; fi
+if [[ "$(findmnt -no FSTYPE /)" == btrfs ]]; then
+  if snapper -c root list >/dev/null 2>&1 || sudo -n snapper -c root list >/dev/null 2>&1; then
+    ok "snapper: $(snapper -c root list 2>/dev/null | tail -n +3 | wc -l) snapshots"
+  else
+    warn "snapper config 'root' not readable (run with sudo to check)"
+  fi
+fi
+use="$(df --output=pcent / | tail -1 | tr -dc 0-9)"
+if ((use < 85)); then ok "root disk ${use}% used"; else fail "root disk ${use}% used"; fi
+if pacman -Qdtq >/dev/null 2>&1; then warn "orphan packages: $(pacman -Qdtq | wc -l) (pacman -Rns \$(pacman -Qdtq))"; fi
+
+echo "Session"
+for u in waybar.service hypridle.service hyprpaper.service hyprpolkitagent.service; do
+  if systemctl --user is-active --quiet "$u"; then ok "$u"; else fail "$u not active"; fi
+done
+if pgrep -x mako >/dev/null || busctl --user status org.freedesktop.Notifications >/dev/null 2>&1; then ok "notifications daemon"; else warn "no notification daemon yet (mako starts on first notification)"; fi
+theme="$(devy-theme current 2>/dev/null)"
+if [[ -n $theme ]]; then ok "theme: $theme"; else fail "no theme applied (run: devy-theme graphite)"; fi
+
+echo "GPU"
+for card in /sys/class/drm/card[0-9]; do
+  [[ -e $card/device/vendor ]] || continue
+  case "$(cat "$card/device/vendor")" in
+    0x8086) ok "$(basename "$card"): Intel ($(basename "$(readlink -f "$card/device/driver")"))" ;;
+    0x10de) ok "$(basename "$card"): NVIDIA ($(basename "$(readlink -f "$card/device/driver")")), power: $(cat "$card/device/power/runtime_status" 2>/dev/null)" ;;
+    0x1002) ok "$(basename "$card"): AMD ($(basename "$(readlink -f "$card/device/driver")"))" ;;
+    *) ok "$(basename "$card"): vendor $(cat "$card/device/vendor")" ;;
+  esac
+done
+if [[ -e /sys/module/nvidia_drm/parameters/modeset ]]; then
+  if [[ "$(cat /sys/module/nvidia_drm/parameters/modeset)" == Y ]]; then ok "nvidia_drm modeset=Y"; else fail "nvidia_drm modeset is off"; fi
+fi
+
+if [[ ${1:-} == --perf ]]; then
+  echo "Performance (record in docs/PERF.md)"
+  ok "boot: $(systemd-analyze 2>/dev/null | head -1)"
+  ok "RAM used now: $(free -m | awk '/Mem:/ {print $3}') MiB"
+  t="$({ /usr/bin/time -f %e zsh -i -c exit; } 2>&1 | tail -1)"
+  ok "zsh interactive startup: ${t}s (target < 0.05)"
+fi
+
+echo
+if ((fails == 0)); then echo "All good."; else echo "$fails problem(s) found."; fi
+exit "$fails"

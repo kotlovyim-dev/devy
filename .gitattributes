@@ -1,0 +1,4 @@
+# Scripts must keep LF line endings even when the repo is touched on Windows.
+* text=auto eol=lf
+*.jpg binary
+*.png binary

@@ -1,0 +1,5 @@
+# Intel iGPU (Alder Lake Iris Xe)
+mesa                  # [?]
+vulkan-intel          # [?]
+intel-media-driver    # [?] VA-API video decode (iHD) for Gen9+
+libva-utils           # [?] vainfo

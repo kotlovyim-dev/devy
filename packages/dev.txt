@@ -1,0 +1,26 @@
+# Developer layer
+zsh                   # [?]
+zsh-autosuggestions   # [?]
+zsh-syntax-highlighting  # [?]
+starship              # [?]
+zoxide                # [?]
+fzf                   # [?]
+eza                   # [?]
+bat                   # [?]
+ripgrep               # [?]
+fd                    # [?]
+direnv                # [?]
+git-delta             # [?]
+lazygit               # [?]
+github-cli            # [?]
+neovim                # [?]
+tree-sitter-cli       # [?]
+mise                  # [v] runtimes: node, python, pnpm, uv
+docker                # [v]
+docker-compose        # [v]
+docker-buildx         # [?]
+lazydocker            # [v]
+xh                    # [?] fast HTTP client (httpie-like)
+yq                    # [?]
+hunspell              # [v] spellcheck engine (Ukrainian dictionary is AUR: aur.txt)
+hunspell-en_us        # [v]

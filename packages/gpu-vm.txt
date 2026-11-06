@@ -1,0 +1,6 @@
+# QEMU/KVM guest (virtio-gpu with virgl, or llvmpipe fallback)
+mesa                  # [?]
+qemu-guest-agent      # [?]
+spice-vdagent         # [?] clipboard sharing with the host (optional)
+open-vm-tools         # [?] VMware guest tools (VMware Workstation on Windows is the recommended VM host)
+gtkmm3                # [?] needed by open-vm-tools for clipboard/resize (vmware-user)

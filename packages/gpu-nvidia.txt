@@ -1,0 +1,8 @@
+# NVIDIA (RTX 4060 Laptop = Ada). Open kernel modules are recommended for Turing+ (wiki: Nvidia).
+nvidia-open-dkms      # [v] (wiki) DKMS builds for every installed kernel (zen + lts)
+nvidia-utils          # [v] (wiki)
+nvidia-settings       # [?]
+nvidia-prime          # [?] provides `prime-run`
+egl-wayland           # [v] (wiki)
+libva-nvidia-driver   # [v] (wiki) NVDEC VA-API
+mesa-utils            # [?] glxinfo, to check `prime-run glxinfo | grep renderer`

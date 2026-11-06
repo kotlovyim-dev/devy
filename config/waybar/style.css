@@ -1,0 +1,55 @@
+/* Devy — Waybar style. Palette variables come from the active theme. */
+@import url("devy-theme.css"); /* gitignored link -> ~/.config/devy/current/waybar.css */
+
+* {
+  font-size: 13px;
+  min-height: 0;
+  border: none;
+}
+
+window#waybar {
+  background: alpha(@base, 0.78);
+  color: @text;
+  border: 1px solid alpha(@overlay, 0.6);
+  /* border-radius and fonts are set in devy-theme.css (GTK CSS has no length/font variables) */
+}
+
+tooltip {
+  background: @surface;
+  color: @text;
+  border: 1px solid @overlay;
+}
+
+#custom-logo {
+  color: @accent;
+  font-size: 16px;
+  padding: 0 12px 0 14px;
+}
+
+#workspaces button {
+  color: @subtext;
+  padding: 0 6px;
+  background: transparent;
+  border-radius: 999px;
+  transition: all 180ms ease;
+}
+#workspaces button.active { color: @accent; }
+#workspaces button.empty { color: @overlay; }
+#workspaces button.urgent { color: @error; }
+#workspaces button:hover { background: alpha(@overlay, 0.5); }
+
+#window { color: @subtext; padding-left: 10px; }
+#clock { font-weight: 600; letter-spacing: 0.5px; }
+
+#tray, #language, #cpu, #memory, #temperature, #wireplumber, #bluetooth,
+#network, #battery, #custom-notifications, #custom-power {
+  padding: 0 9px;
+  color: @subtext;
+}
+
+#language { color: @accent; font-weight: 700; }
+#temperature.critical, #battery.critical:not(.charging) { color: @error; }
+#battery.warning:not(.charging) { color: @warning; }
+#battery.charging { color: @success; }
+#wireplumber.muted, #network.disconnected { color: @overlay; }
+#custom-power { color: @error; padding-right: 14px; }

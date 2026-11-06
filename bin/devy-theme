@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+"""devy-theme — render a theme's palette.toml into every app config, then live-reload.
+
+Usage:
+  devy-theme <name>          apply theme <name>
+  devy-theme --reapply       re-render the current theme (after editing templates)
+  devy-theme list            list installed themes
+  devy-theme current         print the current theme name
+  devy-theme check <name>    validate the palette (keys, colors, WCAG contrast)
+Options:
+  --no-reload                render files only, do not signal running apps
+  --dry-run                  print what would be written
+
+Template syntax ({{...}} in themes/<name>/templates/*.tpl):
+  {{key}}          value as-is          {{key|strip}}    hex without '#'
+  {{key|rgb}}      "r, g, b"            {{key|hypr}}     rgb(rrggbb)
+  {{key|hypra:cc}} rgba(rrggbbcc)
+"""
+from __future__ import annotations
+
+import os
+import re
+import shutil
+import subprocess
+import sys
+try:
+    import tomllib  # Python >= 3.11 (Arch ships 3.13+)
+except ModuleNotFoundError:  # pragma: no cover - older Pythons only
+    import tomli as tomllib
+from pathlib import Path
+
+HOME = Path.home()
+CONFIG = Path(os.environ.get("XDG_CONFIG_HOME", HOME / ".config"))
+DEVY_ROOT = Path(os.environ.get("DEVY_ROOT", Path(__file__).resolve().parent.parent))
+THEMES_DIRS = [CONFIG / "devy" / "themes", DEVY_ROOT / "themes"]  # user themes win
+OUT_DIR = CONFIG / "devy" / "current"
+STATE_FILE = CONFIG / "devy" / "current-theme"
+
+# Rendered file -> link that apps read. A link is (re)created only if it is missing
+# or already a symlink; real files are never overwritten.
+LINKS = {
+    "waybar.css": CONFIG / "waybar" / "devy-theme.css",
+    "fuzzel.ini": CONFIG / "fuzzel" / "devy-theme.ini",
+    "ghostty": CONFIG / "ghostty" / "devy-theme",
+    "mako.conf": CONFIG / "mako" / "config",
+}
+
+REQUIRED = {
+    "colors": ["base", "mantle", "surface", "overlay", "subtext", "text", "accent", "accent2",
+               "success", "warning", "error", "info"],
+    "ansi": ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+             "bright_black", "bright_red", "bright_green", "bright_yellow", "bright_blue",
+             "bright_magenta", "bright_cyan", "bright_white"],
+    "fonts": ["ui", "mono", "ui_size", "mono_size"],
+    "shape": ["radius", "gaps_in", "gaps_out", "border", "blur_size", "blur_passes", "opacity_inactive"],
+    "wallpaper": ["file"],
+}
+HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
+TOKEN = re.compile(r"\{\{\s*([a-z0-9_]+)\s*(?:\|\s*([a-z]+)(?::([0-9a-fA-F]{2}))?\s*)?\}\}")
+
+
+def die(msg: str) -> None:
+    print(f"devy-theme: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def find_theme(name: str) -> Path:
+    for d in THEMES_DIRS:
+        if (d / name / "palette.toml").is_file():
+            return d / name
+    die(f"theme '{name}' not found (looked in {', '.join(map(str, THEMES_DIRS))})")
+    raise AssertionError
+
+
+def list_themes() -> list[str]:
+    names = set()
+    for d in THEMES_DIRS:
+        if d.is_dir():
+            names.update(p.parent.name for p in d.glob("*/palette.toml"))
+    return sorted(names)
+
+
+def load(theme_dir: Path) -> dict[str, str]:
+    with open(theme_dir / "palette.toml", "rb") as f:
+        data = tomllib.load(f)
+    errors = []
+    for section, keys in REQUIRED.items():
+        for k in keys:
+            if k not in data.get(section, {}):
+                errors.append(f"missing [{section}] {k}")
+    for section in ("colors", "ansi"):
+        for k, v in data.get(section, {}).items():
+            if not HEX.match(str(v)):
+                errors.append(f"[{section}] {k} = {v!r} is not #rrggbb")
+    if errors:
+        die("invalid palette:\n  " + "\n  ".join(errors))
+
+    flat: dict[str, str] = {}
+    flat.update({k: str(v) for k, v in data["colors"].items()})
+    flat.update({f"ansi_{k}": str(v) for k, v in data["ansi"].items()})
+    flat.update({f"font_{k}": str(v) for k, v in data["fonts"].items()})
+    flat.update({k: str(v) for k, v in data["shape"].items()})
+    meta = data.get("meta", {})
+    flat["theme_name"] = str(meta.get("name", theme_dir.name))
+    flat["mode"] = str(meta.get("mode", "dark"))
+    wp = theme_dir / "wallpapers" / data["wallpaper"]["file"]
+    if not wp.is_file():
+        die(f"wallpaper not found: {wp}")
+    flat["wallpaper"] = str(wp)
+    return flat
+
+
+def apply_filter(value: str, filt: str | None, arg: str | None) -> str:
+    if filt is None:
+        return value
+    if not HEX.match(value):
+        die(f"filter '{filt}' needs a #rrggbb color, got {value!r}")
+    h = value[1:].lower()
+    if filt == "strip":
+        return h
+    if filt == "rgb":
+        return ", ".join(str(int(h[i:i + 2], 16)) for i in (0, 2, 4))
+    if filt == "hypr":
+        return f"rgb({h})"
+    if filt == "hypra":
+        return f"rgba({h}{(arg or 'ff').lower()})"
+    die(f"unknown filter '{filt}'")
+    raise AssertionError
+
+
+def render(text: str, values: dict[str, str], src: Path) -> str:
+    def sub(m: re.Match) -> str:
+        key, filt, arg = m.group(1), m.group(2), m.group(3)
+        if key not in values:
+            die(f"{src.name}: unknown key '{key}'")
+        return apply_filter(values[key], filt, arg)
+
+    return TOKEN.sub(sub, text)
+
+
+# --- WCAG contrast -------------------------------------------------------------
+def _lum(hex_color: str) -> float:
+    def ch(c: int) -> float:
+        c = c / 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    h = hex_color[1:]
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = sorted((_lum(a), _lum(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def check(values: dict[str, str]) -> bool:
+    ok = True
+    # (foreground, background, minimum ratio). 4.5 = WCAG AA normal text, 3.0 = large text/UI.
+    pairs = [("text", "base", 4.5), ("text", "surface", 4.5), ("subtext", "base", 4.5),
+             ("subtext", "surface", 4.5), ("accent", "base", 4.5), ("accent", "surface", 3.0),
+             ("error", "base", 4.5), ("warning", "base", 4.5), ("success", "base", 4.5)]
+    for fg, bg, need in pairs:
+        r = contrast(values[fg], values[bg])
+        status = "ok " if r >= need else "LOW"
+        ok &= r >= need
+        print(f"  {status} {fg:8} on {bg:8} {r:5.2f}:1 (need {need})")
+    return ok
+
+
+# --- live reload -------------------------------------------------------------------
+def quiet(*cmd: str) -> None:
+    if shutil.which(cmd[0]):
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+
+
+def reload_apps(values: dict[str, str]) -> None:
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
+        quiet("hyprctl", "reload")
+    quiet("makoctl", "reload")
+    # waybar watches its CSS (reload_style_on_change); SIGUSR2 forces a full reload too.
+    quiet("pkill", "-SIGUSR2", "-x", "waybar")
+    # UNTESTED: ghostty reloads its config on SIGUSR2 (Linux, ghostty >= 1.2).
+    quiet("pkill", "-SIGUSR2", "-x", "ghostty")
+    quiet("systemctl", "--user", "try-restart", "hyprpaper.service")
+    scheme = "prefer-dark" if values["mode"] == "dark" else "prefer-light"
+    quiet("gsettings", "set", "org.gnome.desktop.interface", "color-scheme", scheme)
+    quiet("gsettings", "set", "org.gnome.desktop.interface", "gtk-theme",
+          "Adwaita-dark" if values["mode"] == "dark" else "Adwaita")
+    quiet("gsettings", "set", "org.gnome.desktop.interface", "font-name",
+          f"{values['font_ui']} {values['font_ui_size']}")
+    quiet("gsettings", "set", "org.gnome.desktop.interface", "monospace-font-name",
+          f"{values['font_mono']} {values['font_mono_size']}")
+
+
+def ensure_link(target: Path, link: Path, dry: bool) -> None:
+    if link.is_symlink() and os.readlink(link) == str(target):
+        return
+    if link.exists() and not link.is_symlink():
+        print(f"  skip link {link}: a real file exists there (move it away to use the theme)")
+        return
+    if dry:
+        print(f"  [dry-run] link {link} -> {target}")
+        return
+    link.parent.mkdir(parents=True, exist_ok=True)
+    if link.is_symlink():
+        link.unlink()
+    link.symlink_to(target)
+
+
+def apply(name: str, reload: bool, dry: bool) -> None:
+    theme_dir = find_theme(name)
+    values = load(theme_dir)
+    templates = sorted((theme_dir / "templates").glob("*.tpl"))
+    if not templates:
+        die(f"{theme_dir}/templates has no *.tpl files")
+    if not dry:
+        OUT_DIR.mkdir(parents=True, exist_ok=True)
+    for tpl in templates:
+        out = OUT_DIR / tpl.name.removesuffix(".tpl")
+        content = render(tpl.read_text(), values, tpl)
+        if dry:
+            print(f"  [dry-run] write {out} ({len(content)} bytes)")
+            continue
+        tmp = out.with_suffix(out.suffix + ".tmp")
+        tmp.write_text(content)
+        tmp.replace(out)  # atomic: apps never read a half-written file
+    for rendered, link in LINKS.items():
+        if (theme_dir / "templates" / f"{rendered}.tpl").exists():
+            ensure_link(OUT_DIR / rendered, link, dry)
+    if not dry:
+        STATE_FILE.write_text(name + "\n")
+        if reload:
+            reload_apps(values)
+    verb = "would apply" if dry else "applied"
+    print(f"devy-theme: {verb} '{values['theme_name']}' ({len(templates)} files)")
+
+
+def main(argv: list[str]) -> None:
+    reload = "--no-reload" not in argv
+    dry = "--dry-run" in argv
+    args = [a for a in argv if not a.startswith("--") or a == "--reapply"]
+    if not args or args[0] in ("-h", "help"):
+        print(__doc__)
+        return
+    cmd = args[0]
+    if cmd == "list":
+        cur = STATE_FILE.read_text().strip() if STATE_FILE.exists() else ""
+        for n in list_themes():
+            print(("* " if n == cur else "  ") + n)
+    elif cmd == "current":
+        print(STATE_FILE.read_text().strip() if STATE_FILE.exists() else "")
+    elif cmd == "check":
+        if len(args) < 2:
+            die("usage: devy-theme check <name>")
+        values = load(find_theme(args[1]))
+        print(f"{args[1]}: palette ok, contrast:")
+        sys.exit(0 if check(values) else 2)
+    elif cmd == "--reapply":
+        if not STATE_FILE.exists():
+            die("no current theme yet")
+        apply(STATE_FILE.read_text().strip(), reload, dry)
+    else:
+        apply(cmd, reload, dry)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

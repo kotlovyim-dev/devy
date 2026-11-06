@@ -1,0 +1,15 @@
+# Devy — Ghostty. Colors and fonts: devy-theme (gitignored link to the active theme).
+config-file = ?devy-theme
+
+window-padding-x = 14
+window-padding-y = 10
+window-decoration = none
+gtk-single-instance = true
+confirm-close-surface = false
+copy-on-select = clipboard
+mouse-hide-while-typing = true
+shell-integration = zsh
+cursor-style = bar
+resize-overlay = never
+# Keep scrollback bounded: 10 MB per surface (renamed scrollback-limit-bytes in 1.4; old name still accepted).
+scrollback-limit = 10000000

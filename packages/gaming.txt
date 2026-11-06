@@ -1,0 +1,9 @@
+# Gaming (ADR-025). Installed by install/15-gaming.sh AFTER the lib32 GPU drivers below,
+# because steam depends on the virtual lib32-vulkan-driver and pacman --noconfirm would
+# otherwise pick the first provider (lib32-nvidia-utils) even on machines without NVIDIA.
+# Needs the [multilib] repo (15-gaming.sh enables it).
+steam                 # [?]
+gamemode              # [?] `gamemoderun %command%` in Steam launch options
+lib32-gamemode        # [?]
+mangohud              # [?] FPS/temps overlay: `mangohud %command%`
+lib32-mangohud        # [?]

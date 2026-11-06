@@ -1,0 +1,3 @@
+# AUR — keep this list tiny (supply-chain risk). paru shows PKGBUILD diffs before building.
+hunspell-uk           # [v] AUR only — Ukrainian spellcheck (LibreOffice/apps using hunspell)
+visual-studio-code-bin  # [v] Microsoft build: official marketplace (Pylance, Copilot, Remote) — ADR-024

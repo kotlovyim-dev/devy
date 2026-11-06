@@ -1,0 +1,4 @@
+# AMD (not a primary target yet)
+mesa                  # [?]
+vulkan-radeon         # [?]
+libva-utils           # [?]

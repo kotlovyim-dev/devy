@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# devy-update — safe system update.
+#  1. pacman -Syu  (snap-pac takes btrfs snapshots before AND after automatically)
+#  2. AUR updates via paru (shows PKGBUILD diffs for review)
+#  3. reports: failed units, .pacnew files, reboot needed
+# Roll back a bad update: boot the snapshot from the boot menu, or `sudo snapper rollback`.
+set -euo pipefail
+
+echo "==> Updating official packages"
+sudo pacman -Syu
+
+if command -v paru >/dev/null; then
+  echo "==> Updating AUR packages"
+  paru -Sua
+fi
+
+echo "==> Updating Devy configs"
+root="$(dirname "$(dirname "$(readlink -f "$0")")")"
+if [[ -d $root/.git ]]; then
+  git -C "$root" pull --ff-only || echo "   (git pull skipped: local changes)"
+fi
+
+echo "==> Report"
+pacnew="$(find /etc -name '*.pacnew' 2>/dev/null || true)"
+if [[ -n $pacnew ]]; then
+  echo "   .pacnew files to merge (use 'sudo pacdiff'):"
+  while IFS= read -r f; do echo "     $f"; done <<<"$pacnew"
+fi
+failed="$(systemctl --failed --no-legend --plain | awk '{print $1}')"
+if [[ -n $failed ]]; then echo "   failed units: $failed"; fi
+# Kernel updated but still running the old one -> modules may fail to load until reboot.
+running="$(uname -r)"
+if [[ ! -d /usr/lib/modules/$running ]]; then
+  echo "   Kernel was updated: reboot soon."
+fi
+echo "Done."

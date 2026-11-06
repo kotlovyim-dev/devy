@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# devy-dpms on|off — turn screens on/off (used by hypridle). Lua dispatch syntax (Hyprland >= 0.55).
+set -euo pipefail
+case "${1:-}" in
+  on) hyprctl dispatch 'hl.dsp.dpms({ action = "enable" })' ;;
+  off) hyprctl dispatch 'hl.dsp.dpms({ action = "disable" })' ;;
+  *)
+    echo "usage: devy-dpms on|off" >&2
+    exit 1
+    ;;
+esac

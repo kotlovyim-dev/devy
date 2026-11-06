@@ -1,0 +1,3 @@
+# 32-bit AMD drivers for Steam/Proton
+lib32-mesa            # [?]
+lib32-vulkan-radeon   # [?]

@@ -1,0 +1,17 @@
+# Devy — session-wide environment, exported by uwsm to the whole systemd user session
+# (so services like hypridle and apps launched via `uwsm app` see it too).
+# Wayland-only variables belong here, NOT in /etc/environment (Hyprland wiki warning).
+
+export PATH="$HOME/.local/bin:$PATH"
+export TERMINAL=ghostty
+export EDITOR=nvim
+
+# Toolkits: prefer Wayland, fall back to X11.
+export GDK_BACKEND="wayland,x11,*"
+export QT_QPA_PLATFORM="wayland;xcb"
+export QT_QPA_PLATFORMTHEME=qt6ct
+export QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+export SDL_VIDEODRIVER="wayland,x11"
+export MOZ_ENABLE_WAYLAND=1
+# Electron apps (VS Code, Discord, Obsidian...) run natively on Wayland: no blur, no flicker.
+export ELECTRON_OZONE_PLATFORM_HINT=auto

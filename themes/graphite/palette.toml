@@ -1,0 +1,59 @@
+# Devy theme "graphite" — THE single source of truth for this theme.
+# Every app config is rendered from templates/*.tpl with these values by `devy-theme`.
+# Template syntax: {{key}}  {{key|strip}} (no '#')  {{key|rgb}} (r, g, b)  {{key|hypr}} rgb(rrggbb)
+#                  {{key|hypra:cc}} rgba(rrggbbcc)
+
+[meta]
+name = "Graphite"
+mode = "dark"          # dark | light (drives GTK/Qt color-scheme)
+description = "Deep graphite surfaces, one calm electric-blue accent."
+
+[colors]
+base     = "#0f1115"   # window/background
+mantle   = "#0b0c0f"   # deepest background (bar edges, lock)
+surface  = "#171a21"   # cards, inputs, popups
+overlay  = "#2a2f3a"   # borders, separators, inactive
+subtext  = "#9aa2b5"   # secondary text
+text     = "#e6e8ee"   # primary text
+accent   = "#7c9cff"   # the ONE accent
+accent2  = "#a78bfa"   # gradient partner for focused borders only
+success  = "#7ad19b"
+warning  = "#e7c06a"
+error    = "#f2777a"
+info     = "#6cc7e8"
+
+[ansi]
+black   = "#1c1f26"
+red     = "#f2777a"
+green   = "#7ad19b"
+yellow  = "#e7c06a"
+blue    = "#7c9cff"
+magenta = "#c39bff"
+cyan    = "#6cc7e8"
+white   = "#c8ccd6"
+bright_black   = "#4a5160"
+bright_red     = "#ff8f92"
+bright_green   = "#95e2b2"
+bright_yellow  = "#f3d48a"
+bright_blue    = "#9bb3ff"
+bright_magenta = "#d4b5ff"
+bright_cyan    = "#8ad8f2"
+bright_white   = "#ffffff"
+
+[fonts]
+ui        = "Inter"
+mono      = "JetBrainsMono Nerd Font"
+ui_size   = 11
+mono_size = 11.5
+
+[shape]
+radius      = 12
+gaps_in     = 5
+gaps_out    = 10
+border      = 2
+blur_size   = 6
+blur_passes = 2
+opacity_inactive = 0.96
+
+[wallpaper]
+file = "graphite.jpg"   # relative to wallpapers/

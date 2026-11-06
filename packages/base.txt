@@ -1,0 +1,36 @@
+# Core system — every profile
+base-devel            # [?] makepkg for AUR
+git                   # [?]
+linux-zen             # [?] default kernel (ADR-005)
+linux-zen-headers     # [?] needed by DKMS (nvidia-open-dkms)
+linux-lts             # [?] fallback kernel: boot it if a new kernel breaks something
+linux-lts-headers     # [?]
+linux-firmware        # [?]
+intel-ucode           # [?] CPU microcode (harmless on AMD; amd-ucode added by hardware check later)
+kernel-modules-hook   # [v] keeps USB/modules working after a kernel update until reboot
+btrfs-progs           # [?]
+snapper               # [?]
+snap-pac              # [?] snapshot before/after every pacman transaction
+zram-generator        # [?]
+networkmanager        # [?]
+bluez                 # [?]
+bluez-utils           # [?]
+pipewire              # [?]
+pipewire-alsa         # [?]
+pipewire-pulse        # [?]
+pipewire-jack         # [?]
+wireplumber           # [?]
+sof-firmware          # [?] Intel laptop audio (Alder Lake uses SOF)
+openssh               # [?]
+ufw                   # [?] firewall, default deny inbound
+reflector             # [?]
+pacman-contrib        # [?] paccache.timer, pacdiff
+man-db                # [?]
+unzip                 # [?]
+zip                   # [?]
+7zip                  # [?] (replaced p7zip in Arch)
+fastfetch             # [?]
+btop                  # [?]
+jq                    # [?] used by devy-* scripts
+time                  # [?] /usr/bin/time for devy-doctor --perf
+python                # [?] devy-theme (stdlib tomllib)

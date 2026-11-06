@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# devy-screenshot — region | window | screen. Opens the shot in satty to annotate;
+# Ctrl+C in satty copies, Ctrl+S saves to ~/Pictures/Screenshots.
+set -euo pipefail
+
+dir="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
+mkdir -p "$dir"
+file="$dir/$(date +%Y-%m-%d_%H-%M-%S).png"
+
+case "${1:-region}" in
+  region) geom="$(slurp -d)" || exit 0 ;;
+  window)
+    geom="$(hyprctl -j activewindow | jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')"
+    ;;
+  screen) geom="" ;;
+  *)
+    echo "usage: devy-screenshot region|window|screen" >&2
+    exit 1
+    ;;
+esac
+
+if [[ -n $geom ]]; then grim -g "$geom" -; else grim -; fi |
+  satty --filename - --output-filename "$file" --copy-command wl-copy --early-exit

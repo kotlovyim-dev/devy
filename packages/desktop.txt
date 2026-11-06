@@ -1,0 +1,48 @@
+# Desktop — Hyprland session
+hyprland              # [v] >= 0.57 (Lua config)
+uwsm                  # [v] session manager (wiki: useful-utilities/uwsm)
+libnewt               # [v] uwsm menus (wiki)
+xdg-desktop-portal-hyprland  # [?] screen sharing
+xdg-desktop-portal-gtk       # [?] file picker
+hypridle              # [?]
+hyprlock              # [?]
+hyprpaper             # [?]
+hyprpolkitagent       # [v]
+hyprland-guiutils     # [?] Hyprland dialogs (ANR, update screen)
+qt5-wayland           # [?]
+qt6-wayland           # [?]
+qt6ct                 # [?]
+waybar                # [?] needs >= 0.16.0 (released 2026-11-05) for Lua dispatch
+fuzzel                # [?] launcher
+mako                  # [?] notifications
+libnotify             # [?] notify-send
+grim                  # [?] screenshots
+slurp                 # [?] region select
+satty                 # [v] screenshot annotation
+wl-clipboard          # [?]
+cliphist              # [v]
+brightnessctl         # [?]
+playerctl             # [?]
+pavucontrol           # [?]
+blueman               # [?]
+network-manager-applet  # [?] provides nm-connection-editor
+ghostty               # [v] terminal
+nautilus              # [?] file manager
+gvfs                  # [?] trash, mounts for nautilus
+yazi                  # [?] TUI file manager
+chromium              # [?] browser (ADR-023); flags in config/chromium-flags.conf
+gnome-keyring         # [?] secret storage for Chromium/VS Code/gh (unlocked at login via PAM)
+libsecret             # [?]
+seahorse              # [?] GUI to manage the keyring
+mpv                   # [?]
+imv                   # [?]
+zathura               # [?]
+zathura-pdf-mupdf     # [?]
+papirus-icon-theme    # [?]
+gnome-themes-extra    # [?] Adwaita-dark for GTK3
+# Fonts — Cyrillic coverage matters (Noto covers Ukrainian fully).
+inter-font            # [?] UI font
+ttf-jetbrains-mono-nerd  # [v] mono font with icons
+noto-fonts            # [?]
+noto-fonts-emoji      # [?]
+noto-fonts-cjk        # [?]

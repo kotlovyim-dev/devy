@@ -1,0 +1,2 @@
+# 32-bit NVIDIA userspace for Steam/Proton (matches nvidia-utils)
+lib32-nvidia-utils    # [?]

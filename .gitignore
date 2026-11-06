@@ -1,0 +1,9 @@
+# Links created by devy-theme inside linked config dirs (point to ~/.config/devy/current/*)
+config/waybar/devy-theme.css
+config/fuzzel/devy-theme.ini
+config/ghostty/devy-theme
+# Test artifacts
+tests/vm/work/
+*.qcow2
+*.iso
+__pycache__/

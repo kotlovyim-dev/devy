@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# devy-menu — small fuzzel menus: clipboard, power, theme, do-not-disturb.
+# Usage: devy-menu clipboard|power|theme|dnd|dnd-status
+set -euo pipefail
+
+menu() { fuzzel --dmenu --prompt "$1  " --lines "${2:-8}" --width 32; }
+
+case "${1:-}" in
+  clipboard)
+    # cliphist keeps history (started in hypr autostart); pick an entry and copy it back.
+    selection="$(cliphist list | fuzzel --dmenu --prompt '  ' --width 60)" || exit 0
+    printf '%s' "$selection" | cliphist decode | wl-copy
+    ;;
+  power)
+    choice="$(printf '%s\n' '  Lock' '󰤄  Suspend' '  Reboot' '  Shut down' '󰍃  Log out' | menu '⏻' 5)" || exit 0
+    case "$choice" in
+      *Lock) loginctl lock-session ;;
+      *Suspend) systemctl suspend ;;
+      *Reboot) systemctl reboot ;;
+      *"Shut down") systemctl poweroff ;;
+      *"Log out") uwsm stop ;;
+    esac
+    ;;
+  theme)
+    current="$(devy-theme current)"
+    choice="$(devy-theme list | sed 's/^[* ] //' | menu "󰏘 ($current)")" || exit 0
+    [[ -n $choice ]] && devy-theme "$choice" && notify-send "Theme" "Applied $choice"
+    ;;
+  dnd)
+    if makoctl mode | grep -qx do-not-disturb; then
+      makoctl mode -r do-not-disturb >/dev/null
+      notify-send "Notifications" "Do Not Disturb is off"
+    else
+      makoctl mode -a do-not-disturb >/dev/null
+    fi
+    ;;
+  dnd-status)
+    # JSON for the waybar custom module.
+    if makoctl mode 2>/dev/null | grep -qx do-not-disturb; then
+      printf '{"text":"󰂛","tooltip":"Do Not Disturb (right-click to turn off)","class":"dnd"}\n'
+    else
+      printf '{"text":"󰂚","tooltip":"Notifications (click: show last, right-click: DND)","class":"on"}\n'
+    fi
+    ;;
+  *)
+    echo "usage: devy-menu clipboard|power|theme|dnd|dnd-status" >&2
+    exit 1
+    ;;
+esac

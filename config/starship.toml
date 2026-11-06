@@ -1,0 +1,41 @@
+# Devy — minimal, fast prompt. Colors follow the terminal palette (set by the theme).
+add_newline = false
+command_timeout = 300
+format = "$directory$git_branch$git_status$nodejs$python$docker_context$cmd_duration$line_break$character"
+
+[directory]
+style = "bold blue"
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+format = "[$symbol$branch]($style) "
+symbol = " "
+style = "purple"
+
+[git_status]
+format = "[$all_status$ahead_behind]($style) "
+style = "yellow"
+
+[nodejs]
+format = "[ $version]($style) "
+detect_files = ["package.json", ".nvmrc"]
+style = "green"
+
+[python]
+format = "[ $virtualenv]($style) "
+style = "yellow"
+detect_extensions = []
+
+[docker_context]
+format = "[ $context]($style) "
+only_with_files = true
+
+[cmd_duration]
+min_time = 2000
+format = "[$duration]($style) "
+style = "bright-black"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"

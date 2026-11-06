@@ -1,0 +1,4 @@
+# Laptop profile
+power-profiles-daemon # [?] performance/balanced/power-saver (ADR-007)
+thermald              # [?] Intel thermal management
+acpi                  # [?]
