@@ -18,6 +18,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Steam and lib32 packages live in [multilib], which is off in the container image.
-      - run: sed -i '/^#\[multilib\]/{s/^#//;n;s/^#//}' /etc/pacman.conf
+      - name: Enable multilib
+        run: |
+          if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
+            if grep -q '^#\[multilib\]' /etc/pacman.conf; then
+              sed -i '/^#\[multilib\]/{s/^#//;n;s/^#//}' /etc/pacman.conf
+            else
+              printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >> /etc/pacman.conf
+            fi
+          fi
+          grep -n -A1 'multilib' /etc/pacman.conf
       - run: pacman -Syu --noconfirm --needed jq curl
       - run: bash tests/check-packages.sh

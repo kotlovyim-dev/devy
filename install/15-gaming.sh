@@ -8,9 +8,13 @@ else
   log_step "Gaming"
   pkg_dir="$DEVY_ROOT/packages"
 
-  # Enable [multilib] (32-bit repo) by uncommenting its two lines in pacman.conf.
+  # Enable [multilib] (32-bit repo): uncomment its block, or append it if the block is absent.
   if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
-    run_root sed -i '/^#\[multilib\]/{s/^#//;n;s/^#//}' /etc/pacman.conf
+    if grep -q '^#\[multilib\]' /etc/pacman.conf; then
+      run_root sed -i '/^#\[multilib\]/{s/^#//;n;s/^#//}' /etc/pacman.conf
+    else
+      printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' | run_root tee -a /etc/pacman.conf >/dev/null
+    fi
     run_root pacman -Sy --noconfirm
     log_ok "enabled [multilib]"
   fi
