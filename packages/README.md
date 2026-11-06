@@ -6,4 +6,5 @@ One package per line, `#` starts a comment. Status tag at the end of each line:
 - `[?]` — standard Arch package, **not** re-checked in this session (archlinux.org was not
   reachable from the build environment). `tests/check-packages.sh` verifies everything.
 
-Run `tests/check-packages.sh` on any Arch machine/VM before committing manifest changes.
+**2026-11-06: CI (`archlinux:latest` + multilib) confirmed that every package in every list exists**, including all `[?]` entries.
+CI re-checks on every push; run `tests/check-packages.sh` locally before changing a manifest.

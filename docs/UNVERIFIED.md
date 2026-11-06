@@ -5,7 +5,7 @@ Everything below was written from current official docs (Hyprland wiki @ 0.57, O
 the static checks pass — but it has **not been run on Arch**.
 
 ## High priority (M1 — in the VM)
-1. **Package names** marked `[?]` in `packages/*.txt` — run `tests/check-packages.sh` (or let CI do it).
+1. ~~Package names~~ — **verified by CI on 2026-11-06**: all packages exist in Arch repos/AUR.
 2. **Waybar ≥ 0.16.0 in Arch repos.** It was released 2026-11-05 (one day before this work). If Arch still has 0.15,
    workspace clicks won't work → install `waybar-git` from AUR temporarily.
 3. **The whole Hyprland session**: config loads with no errors (`hyprctl configerrors` empty), bar, launcher, notifications, lock.
